@@ -12,6 +12,14 @@
       "dest": "server/server.js"
     },
     {
+      "src": "/admin(/.*)?",
+      "dest": "server/server.js"
+    },
+    {
+      "src": "/watch(/.*)?",
+      "dest": "server/server.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "public/$1"
     }
