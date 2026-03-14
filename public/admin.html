@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Movie Streaming Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; }
+        
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-overlay.hidden { display: none; }
+        .login-box {
+            background: #141414;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-box h2 { color: #e50914; margin-bottom: 1.5rem; }
+        .login-box input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #e50914;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .login-box button:hover { background: #b2070f; }
+        .login-error { color: #ff6b6b; margin-top: 1rem; display: none; }
+        
+        .admin-content { display: none; }
+        .admin-content.active { display: block; }
+        
+        .admin-header {
+            background: #141414;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222;
+        }
+        .admin-header h1 { color: #e50914; font-size: 1.5rem; }
+        .admin-header a { color: #fff; text-decoration: none; margin-left: 1rem; }
+        
+        .sidebar {
+            background: #141414;
+            width: 250px;
+            min-height: calc(100vh - 70px);
+            padding: 1rem;
+            position: fixed;
+            left: 0;
+            top: 70px;
+        }
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav li { margin-bottom: 0.5rem; }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #a3a3a3;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: #e50914; color: #fff; }
+        
+        .main-content { margin-left: 250px; padding: 2rem; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #141414;
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        .stat-card h3 { color: #a3a3a3; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; }
+        .stat-card .value.red { color: #e50914; }
+        .stat-card .value.blue { color: #3b82f6; }
+        .stat-card .value.green { color: #10b981; }
+        .stat-card .value.yellow { color: #f59e0b; }
+        
+        .section { margin-bottom: 2rem; }
+        .section h2 { margin-bottom: 1rem; font-size: 1.25rem; }
+        
+        .upload-section, .movies-list, .analytics-section {
+            background: #141414;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #a3a3a3; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        
+        .upload-area {
+            border: 2px dashed #333;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        .upload-area:hover { border-color: #e50914; }
+        
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .btn-primary { background: #e50914; color: #fff; }
+        .btn-primary:hover { background: #b2070f; }
+        .btn-danger { background: #dc2626; color: #fff; }
+        
+        .movie-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid #222;
+        }
+        .movie-item:last-child { border-bottom: none; }
+        .movie-item img { width: 60px; height: 80px; object-fit: cover; border-radius: 8px; }
+        .movie-item .info { flex: 1; }
+        .movie-item .title { font-weight: 600; margin-bottom: 0.25rem; }
+        .movie-item .meta { color: #6b6b6b; font-size: 0.85rem; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .alert.success { background: #166534; color: #fff; }
+        .alert.error { background: #dc2626; color: #fff; }
+        
+        .movie-actions { display: flex; gap: 0.5rem; }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2><i class="fas fa-lock"></i> Admin Login</h2>
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <p class="login-error" id="loginError">Invalid credentials</p>
+        </div>
+    </div>
+    
+    <div class="admin-content" id="adminContent">
+    <header class="admin-header">
+        <h1><i class="fas fa-film"></i> Admin Panel</h1>
+        <div>
+            <a href="/">View Site</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </header>
+    
+    <nav class="sidebar">
+        <ul class="sidebar-nav">
+            <li><a href="#" class="active" data-tab="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="#" data-tab="upload"><i class="fas fa-upload"></i> Upload Movie</a></li>
+            <li><a href="#" data-tab="movies"><i class="fas fa-list"></i> All Movies</a></li>
+            <li><a href="#" data-tab="analytics"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+            <li><a href="#" data-tab="settings"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+    </nav>
+    
+    <div class="main-content">
+        <div class="tab-content active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Movies</h3>
+                    <div class="value red" id="statMovies">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Views</h3>
+                    <div class="value blue" id="statViews">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Ratings</h3>
+                    <div class="value green" id="statRatings">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Featured</h3>
+                    <div class="value yellow" id="statFeatured">0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Recent Movies</h2>
+                <div class="movies-list" id="recentMovies"></div>
+            </div>
+            
+            <div class="section">
+                <h2>Top Rated Movies</h2>
+                <div class="movies-list" id="topRatedMovies"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="upload">
+            <div class="upload-section">
+                <h2><i class="fas fa-plus-circle"></i> Upload New Movie</h2>
+                <div class="alert" id="alert"></div>
+                
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label>Movie Title *</label>
+                        <input type="text" id="title" required placeholder="Enter movie title">
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="category">
+                                <option value="Bollywood">Bollywood</option>
+                                <option value="Hollywood">Hollywood</option>
+                                <option value="Hindi">Hindi</option>
+                                <option value="South">South Indian</option>
+                                <option value="Anime">Anime</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Release Year</label>
+                            <input type="text" id="year" placeholder="2025">
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Quality</label>
+                            <select id="quality">
+                                <option value="240p">240p</option>
+                                <option value="360p">360p</option>
+                                <option value="480p">480p</option>
+                                <option value="720p" selected>720p HD</option>
+                                <option value="1080p">1080p Full HD</option>
+                                <option value="4K">4K</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Language</label>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Hindi"> Hindi
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="English" checked> English
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Tamil"> Tamil
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Telugu"> Telugu
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Malayalam"> Malayalam
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Kannada"> Kannada
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Bengali"> Bengali
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="checkbox" name="movieLanguage" value="Marathi"> Marathi
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Upload Video File *</label>
+                        <div class="upload-area" id="videoUploadArea" onclick="document.getElementById('videoFile').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to select video file</p>
+                            <p style="font-size: 0.8rem; color: #888;">Supports MP4, MKV, WebM (Max 2GB)</p>
+                            <div class="file-name" id="videoFileName"></div>
+                        </div>
+                        <input type="file" id="videoFile" accept="video/*" style="display: none;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Thumbnail Image</label>
+                        <div class="upload-area" id="thumbnailUploadArea" onclick="document.getElementById('thumbnail').click()" style="padding: 1rem;">
+                            <i class="fas fa-image"></i>
+                            <p>Click to select thumbnail</p>
+                            <div class="file-name" id="thumbnailFileName"></div>
+                        </div>
+                        <input type="file" id="thumbnail" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="description" placeholder="Movie description..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-upload"></i> Upload Movie
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="movies">
+            <div class="movies-list">
+                <h2><i class="fas fa-list"></i> All Movies (<span id="movieCount">0</span>)</h2>
+                <div id="moviesContainer"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="analytics">
+            <div class="analytics-section">
+                <h2><i class="fas fa-chart-bar"></i> Analytics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Views (30 days)</h3>
+                        <div class="value blue" id="analyticsViews">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Ratings (30 days)</h3>
+                        <div class="value green" id="analyticsRatings">0</div>
+                    </div>
+                </div>
+                <h3>Top Viewed Movies</h3>
+                <div id="topViewed"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="settings">
+            <div class="analytics-section">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+                <div class="alert" id="settingsAlert"></div>
+                
+                <div class="form-group" style="max-width: 400px;">
+                    <label>Current Password *</label>
+                    <input type="password" id="currentPassword" placeholder="Enter current password">
+                </div>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>New Username</label>
+                    <input type="text" id="newUsername" placeholder="Enter new username">
+                </div>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>New Password</label>
+                    <input type="password" id="newPassword" placeholder="Enter new password">
+                </div>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                </div>
+                <button class="btn btn-primary" onclick="changeCredentials()">
+                    <i class="fas fa-save"></i> Update Credentials
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+    
+    <script>
+        const API_BASE = '';
+        let authToken = localStorage.getItem('admin_token');
+        
+        async function apiCall(endpoint, options = {}) {
+            const headers = {
+                ...options.headers
+            };
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            const res = await fetch(endpoint, { ...options, headers });
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired');
+            }
+            return res.json();
+        }
+        
+        function checkAuth() {
+            if (authToken) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('adminContent').classList.add('active');
+                loadDashboard();
+            } else {
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                document.getElementById('adminContent').classList.remove('active');
+            }
+        }
+        
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            
+            if (data.token) {
+                authToken = data.token;
+                localStorage.setItem('admin_token', authToken);
+                checkAuth();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('admin_token');
+            authToken = null;
+            checkAuth();
+        }
+        
+        document.querySelectorAll('.sidebar-nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+                link.classList.add('active');
+                
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                document.getElementById(link.dataset.tab).classList.add('active');
+                
+                if (link.dataset.tab === 'dashboard') loadDashboard();
+                if (link.dataset.tab === 'movies') loadMovies();
+                if (link.dataset.tab === 'analytics') loadAnalytics();
+            });
+        });
+        
+        async function loadDashboard() {
+            const data = await apiCall('/api/admin/dashboard');
+            
+            document.getElementById('statMovies').textContent = data.stats.totalMovies;
+            document.getElementById('statViews').textContent = formatNumber(data.stats.totalViews);
+            document.getElementById('statRatings').textContent = formatNumber(data.stats.totalRatings);
+            document.getElementById('statFeatured').textContent = data.stats.featuredCount;
+            
+            document.getElementById('recentMovies').innerHTML = data.recentMovies.map(m => createMovieItem(m)).join('');
+            document.getElementById('topRatedMovies').innerHTML = data.topRated.map(m => createMovieItem(m)).join('');
+        }
+        
+        async function loadMovies() {
+            const data = await apiCall('/api/admin/movies');
+            document.getElementById('movieCount').textContent = data.total;
+            document.getElementById('moviesContainer').innerHTML = data.movies.map(m => createMovieItem(m, true)).join('');
+        }
+        
+        async function loadAnalytics() {
+            const data = await apiCall('/api/admin/analytics?days=30');
+            
+            document.getElementById('analyticsViews').textContent = data.totalViews;
+            document.getElementById('topViewed').innerHTML = data.topMovies.map(m => 
+                `<div class="movie-item"><div class="info"><div class="title">${m.title}</div><div class="meta">${m.views} views</div></div></div>`
+            ).join('');
+        }
+        
+        function createMovieItem(movie, showActions = false) {
+            return `
+                <div class="movie-item">
+                    <img src="${movie.posterUrl || 'https://via.placeholder.com/60x80?text=No+Poster'}" alt="${movie.title}">
+                    <div class="info">
+                        <div class="title">${movie.title}</div>
+                        <div class="meta">
+                            ${movie.category} | ${movie.year} | <i class="fas fa-eye"></i> ${formatNumber(movie.views)} | <i class="fas fa-star"></i> ${movie.rating || 'N/A'}
+                        </div>
+                    </div>
+                    ${showActions ? `
+                        <div class="movie-actions">
+                            <a href="/watch/${movie._id}" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-play"></i></a>
+                            <button onclick="deleteMovie('${movie._id}')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num;
+        }
+        
+        async function deleteMovie(id) {
+            if (!confirm('Delete this movie?')) return;
+            await apiCall(`/api/admin/movie/${id}`, { method: 'DELETE' });
+            loadMovies();
+            showAlert('Movie deleted', 'success');
+        }
+        
+        document.getElementById('videoFile').addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                document.getElementById('videoFileName').textContent = e.target.files[0].name;
+            }
+        });
+        
+        document.getElementById('thumbnail').addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                document.getElementById('thumbnailFileName').textContent = e.target.files[0].name;
+            }
+        });
+        
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const videoFile = document.getElementById('videoFile').files[0];
+            if (!videoFile) {
+                showAlert('Please select a video file', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('year', document.getElementById('year').value);
+            formData.append('quality', document.getElementById('quality').value);
+            const languageCheckboxes = document.querySelectorAll('input[name="movieLanguage"]:checked');
+            const movieLanguages = Array.from(languageCheckboxes).map(cb => cb.value).join(',');
+            formData.append('movieLanguage', movieLanguages);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('video', videoFile);
+            
+            const thumbnailFile = document.getElementById('thumbnail').files[0];
+            if (thumbnailFile) {
+                formData.append('thumbnail', thumbnailFile);
+            }
+            
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            
+            try {
+                const data = await apiCall('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (data.success) {
+                    showAlert('Movie uploaded successfully!', 'success');
+                    document.getElementById('uploadForm').reset();
+                    document.getElementById('videoFileName').textContent = '';
+                    document.getElementById('thumbnailFileName').textContent = '';
+                    loadDashboard();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+            
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-upload"></i> Upload Movie';
+        });
+        
+        function showAlert(msg, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = msg;
+            alert.className = 'alert ' + type;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 5000);
+        }
+        
+        function showSettingsAlert(msg, type) {
+            const alert = document.getElementById('settingsAlert');
+            alert.textContent = msg;
+            alert.className = 'alert ' + type;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 5000);
+        }
+        
+        async function changeCredentials() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newUsername = document.getElementById('newUsername').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!currentPassword) {
+                showSettingsAlert('Current password is required', 'error');
+                return;
+            }
+            
+            if (!newUsername && !newPassword) {
+                showSettingsAlert('Enter new username or password', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showSettingsAlert('New passwords do not match', 'error');
+                return;
+            }
+            
+            try {
+                const data = await apiCall('/api/auth/change-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        currentPassword,
+                        newUsername: newUsername || undefined,
+                        newPassword: newPassword || undefined
+                    })
+                });
+                
+                if (data.success) {
+                    showSettingsAlert('Credentials updated successfully!', 'success');
+                    authToken = data.token;
+                    localStorage.setItem('admin_token', authToken);
+                    
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newUsername').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    showSettingsAlert(data.error, 'error');
+                }
+            } catch (err) {
+                showSettingsAlert(err.message, 'error');
+            }
+        }
+        
+        checkAuth();
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Movie - WatchMovies</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; }
+        
+        .navbar {
+            background: #141414;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar a { color: #fff; text-decoration: none; }
+        .logo { font-size: 1.5rem; font-weight: 700; }
+        .logo i { color: #e50914; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .video-js {
+            width: 100%;
+            border-radius: 12px;
+        }
+        
+        .vjs-control-bar {
+            background: rgba(0,0,0,0.8) !important;
+        }
+        
+        .quality-selector {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+        
+        .quality-btn {
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .movie-info {
+            background: #141414;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .movie-info h1 { font-size: 1.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .movie-meta { color: #a3a3a3; margin-bottom: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .movie-meta span { display: flex; align-items: center; gap: 0.5rem; }
+        .movie-meta .views { color: #e50914; }
+        
+        .rating-stars { color: #ffc107; }
+        
+        .user-rating {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #333;
+        }
+        .user-rating-label { color: #a3a3a3; }
+        .user-rating-stars { display: flex; gap: 0.25rem; cursor: pointer; }
+        .user-rating-stars i { color: #444; font-size: 1.5rem; transition: color 0.2s; }
+        .user-rating-stars i.active { color: #ffc107; }
+        .rating-message { color: #4ade80; margin-left: 0.5rem; }
+        
+        .description { color: #a3a3a3; line-height: 1.6; margin-bottom: 1rem; }
+        
+        .action-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .action-btn:hover { background: #333; }
+        .action-btn.like { color: #e50914; }
+        .action-btn.share { color: #4285f4; }
+        
+        .related-movies {
+            background: #141414;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .related-movies h3 { margin-bottom: 1rem; }
+        
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .movie-card {
+            background: #222;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .movie-card:hover { transform: scale(1.03); }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .movie-card .info { padding: 0.75rem; }
+        .movie-card .title { font-size: 0.85rem; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .movie-card .meta { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.75rem; color: #666; }
+        
+        .loading { text-align: center; padding: 3rem; }
+        
+        .no-video {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: #141414;
+            border-radius: 12px;
+        }
+        .no-video i { font-size: 4rem; color: #e50914; margin-bottom: 1rem; }
+        .no-video h3 { margin-bottom: 0.5rem; }
+        .no-video p { color: #666; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo"><i class="fas fa-play-circle"></i> WatchMovies</a>
+        <a href="/"><i class="fas fa-home"></i> Home</a>
+    </nav>
+    
+    <div class="container" id="content">
+        <div class="loading">Loading...</div>
+    </div>
+    
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        const movieId = window.location.pathname.split('/').pop();
+        let player = null;
+        
+        async function loadMovie() {
+            const res = await fetch(`/api/movie/${movieId}`);
+            
+            if (!res.ok) {
+                document.getElementById('content').innerHTML = '<div class="loading">Movie not found</div>';
+                return;
+            }
+            
+            const movie = await res.json();
+            
+            const isLocal = movie.videoUrl && (movie.videoUrl.startsWith('/uploads') || movie.isLocal);
+            const rating = movie.rating || 0;
+            const ratingCount = movie.ratingCount || 0;
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            
+            let starsHTML = '';
+            for (let i = 0; i < 5; i++) {
+                if (i < fullStars) starsHTML += '<i class="fas fa-star"></i>';
+                else if (i === fullStars && hasHalfStar) starsHTML += '<i class="fas fa-star-half-alt"></i>';
+                else starsHTML += '<i class="far fa-star"></i>';
+            }
+            
+            const ratingDisplay = rating > 0 ? rating.toFixed(1) : 'N/A';
+            const ratingCountDisplay = ratingCount > 0 ? `(${ratingCount} votes)` : '(Be the first to rate)';
+            
+            let videoHTML = '';
+            
+            if (movie.videoUrl) {
+                if (isLocal || movie.videoUrl.includes('.mp4') || movie.videoUrl.includes('/uploads/')) {
+                    videoHTML = `
+                        <video id="player" class="video-js" controls preload="auto" data-setup='{"playbackRates": [0.5, 1, 1.25, 1.5, 2]}'>
+                            <source src="${movie.videoUrl}" type="video/mp4">
+                            <p class="vjs-no-js">To view this video please enable JavaScript</p>
+                        </video>
+                    `;
+                } else {
+                    videoHTML = `
+                        <video id="player" class="video-js" controls preload="auto">
+                            <source src="${movie.videoUrl}" type="video/mp4">
+                            <p class="vjs-no-js">To view this video please enable JavaScript</p>
+                        </video>
+                    `;
+                }
+            } else {
+                videoHTML = `
+                    <div class="no-video">
+                        <i class="fas fa-video-slash"></i>
+                        <h3>Video Not Available</h3>
+                        <p>This movie doesn't have a video source yet.</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('content').innerHTML = `
+                <div class="video-container">
+                    ${videoHTML}
+                </div>
+                
+                <div class="movie-info">
+                    <h1>${movie.title}</h1>
+                    <div class="movie-meta">
+                        <span class="views"><i class="fas fa-eye"></i> ${formatViews(movie.views || 0)} views</span>
+                        <span class="rating"><div class="rating-stars">${starsHTML}</div> ${ratingDisplay} ${ratingCountDisplay}</span>
+                        <span><i class="fas fa-folder"></i> ${movie.category || 'Movie'}</span>
+                        <span><i class="fas fa-language"></i> ${Array.isArray(movie.movieLanguage) ? movie.movieLanguage.join(', ') : movie.movieLanguage || 'Hindi'}</span>
+                        <span><i class="fas fa-calendar"></i> ${movie.year || '2025'}</span>
+                        <span><i class="fas fa-video"></i> ${movie.quality || 'HD'}</span>
+                    </div>
+                    <p class="description">${movie.description || 'Watch ' + movie.title + ' online in HD quality.'}</p>
+                    <div class="action-buttons">
+                        <button class="action-btn like" onclick="likeMovie()">
+                            <i class="fas fa-heart"></i> Like
+                        </button>
+                        <button class="action-btn share" onclick="shareMovie()">
+                            <i class="fas fa-share-alt"></i> Share
+                        </button>
+                    </div>
+                    <div class="user-rating">
+                        <span class="user-rating-label">Rate this movie:</span>
+                        <div class="user-rating-stars" id="userRatingStars">
+                            <i class="fas fa-star" data-rating="1"></i>
+                            <i class="fas fa-star" data-rating="2"></i>
+                            <i class="fas fa-star" data-rating="3"></i>
+                            <i class="fas fa-star" data-rating="4"></i>
+                            <i class="fas fa-star" data-rating="5"></i>
+                        </div>
+                        <span class="rating-message" id="ratingMessage"></span>
+                    </div>
+                </div>
+                
+                <div class="related-movies">
+                    <h3>Related Movies</h3>
+                    <div class="movies-grid" id="relatedGrid"></div>
+                </div>
+            `;
+            
+            if (movie.videoUrl) {
+                player = videojs('player', {
+                    controls: true,
+                    autoplay: false,
+                    preload: 'auto',
+                    playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
+                    fluid: true,
+                    sources: [{
+                        src: movie.videoUrl,
+                        type: 'video/mp4'
+                    }]
+                });
+                
+                player.on('ended', () => {
+                    console.log('Video ended');
+                });
+            }
+            
+            document.title = `${movie.title} - WatchMovies`;
+            loadRelated(movie.category);
+        }
+        
+        function formatViews(views) {
+            if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
+            if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+            return views;
+        }
+        
+        function likeMovie() {
+            alert('Thanks for liking! This helps us know what movies you enjoy.');
+        }
+        
+        function shareMovie() {
+            if (navigator.share) {
+                navigator.share({ title: document.title, url: window.location.href });
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Link copied to clipboard!');
+            }
+        }
+        
+        async function loadRelated(category) {
+            const res = await fetch(`/api/movies?category=${category || 'Bollywood'}`);
+            const data = await res.json();
+            
+            const related = data.movies.filter(m => m._id != movieId).slice(0, 6);
+            
+            document.getElementById('relatedGrid').innerHTML = related.map(m => `
+                <a href="/watch/${m._id}" class="movie-card">
+                    <img src="${m.posterUrl || 'https://via.placeholder.com/150x225?text=No+Poster'}" alt="${m.title}">
+                    <div class="info">
+                        <div class="title">${m.title}</div>
+                        <div class="meta">
+                            <span>${m.year || '2025'}</span>
+                            <span>${formatViews(m.views || 0)} views</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+        
+        async function rateMovie(rating) {
+            try {
+                const res = await fetch(`/api/movie/${movieId}/rate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rating })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('ratingMessage').textContent = `Thanks! Rated ${rating} stars (Avg: ${data.rating})`;
+                    localStorage.setItem(`rated_${movieId}`, 'true');
+                }
+            } catch (e) {
+                console.error('Rating error:', e);
+            }
+        }
+        
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('fa-star') && e.target.parentElement.id === 'userRatingStars') {
+                if (localStorage.getItem(`rated_${movieId}`)) {
+                    document.getElementById('ratingMessage').textContent = 'You have already rated this movie!';
+                    return;
+                }
+                const rating = parseInt(e.target.dataset.rating);
+                
+                document.querySelectorAll('#userRatingStars i').forEach((star, index) => {
+                    star.classList.toggle('active', index < rating);
+                });
+                
+                rateMovie(rating);
+            }
+        });
+        
+        loadMovie();
+    </script>
+</body>
+</html>
